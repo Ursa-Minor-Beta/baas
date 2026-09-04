@@ -1,0 +1,37 @@
+# Semgrep Configuration for BaaS (Browser-as-a-Service)
+# Go (Gin/ChromeDP) + Node.js scripts + Python scripts
+#
+# registry: p/golang p/javascript p/python p/security-audit p/secrets p/owasp-top-ten
+#
+# Run locally: semgrep scan --config .semgrep.yml
+#
+# Only rules specific to this repo's stack live here; general Go/JS/Python
+# coverage comes from the registry packs listed above.
+
+rules:
+  # =============================================================================
+  # BROWSER AUTOMATION SECURITY (baas-specific — ChromeDP framework)
+  # =============================================================================
+
+  - id: chromedp-navigate-user-input
+    patterns:
+      - pattern: chromedp.Navigate($URL)
+      - pattern-not: chromedp.Navigate("...")
+    message: "Browser navigation with dynamic URL — validate to prevent SSRF and malicious redirects"
+    languages: [go]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-918: Server-Side Request Forgery"
+      owasp: "A10:2021 - Server-Side Request Forgery"
+
+paths:
+  include:
+    - cmd/
+    - internal/
+    - pkg/
+    - scripts/
+  exclude:
+    - vendor/
+    - node_modules/
+    - "*_test.go"

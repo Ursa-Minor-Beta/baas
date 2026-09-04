@@ -1,0 +1,1049 @@
+definitions:
+  github_com_Ursa-Minor-Beta_baas_internal_sessions.ActiveSession:
+    properties:
+      ID:
+        type: string
+      browserOpts:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserOpts'
+      createdAt:
+        type: string
+      expiresAt:
+        type: string
+      ttlSeconds:
+        type: integer
+    type: object
+  github_com_Ursa-Minor-Beta_baas_internal_sessions.IsActive:
+    properties:
+      active:
+        type: boolean
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.Article:
+    properties:
+      byline:
+        type: string
+      content:
+        type: string
+      excerpt:
+        type: string
+      favicon:
+        type: string
+      image:
+        type: string
+      language:
+        type: string
+      length:
+        type: integer
+      modifiedTime:
+        type: string
+      publishedTime:
+        type: string
+      rawContent:
+        type: string
+      siteName:
+        type: string
+      textContent:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserCookie:
+    properties:
+      domain:
+        type: string
+      httpOnly:
+        type: boolean
+      name:
+        type: string
+      path:
+        type: string
+      secure:
+        type: boolean
+      value:
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserMessageIn:
+    properties:
+      errorOnOperationTimeout:
+        default: true
+        description: 'whether to return error when a single operation times out (default:
+          true)'
+        type: boolean
+      operationTimeout:
+        default: 20s
+        description: 'timeout to execute a single command (default: 20s)'
+        example: 20s
+        type: string
+      program:
+        description: program to run (required)
+        type: string
+      requestID:
+        description: ID of the current request (used for internal purposes)
+        type: string
+      secrets:
+        additionalProperties:
+          type: string
+        description: program secrets to use (values can be obtained as getSecret('name'))
+        type: object
+      sessionID:
+        description: sessionID to send event to
+        type: string
+      stopSession:
+        default: false
+        description: tells browser to stop session
+        example: true
+        type: boolean
+      timeout:
+        default: 10s
+        description: timeout to process message
+        example: 10s
+        type: string
+      values:
+        additionalProperties:
+          type: string
+        description: program values to use (values can be obtained as getValue('name'))
+        type: object
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserMessageOut:
+    properties:
+      downloadedFile:
+        items:
+          type: integer
+        type: array
+      downloadedFileName:
+        type: string
+      error:
+        description: error happened when running program
+        type: string
+      generationInfo:
+        additionalProperties: {}
+        description: metadata related to generation via LLM
+        type: object
+      log:
+        items:
+          type: string
+        type: array
+      meta:
+        allOf:
+        - $ref: '#/definitions/service.ResultMeta'
+        description: metadata related to processing
+      outHtml:
+        type: string
+      readabilityArticle:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Article'
+      requestID:
+        description: ID of the current request (used for internal purposes)
+        type: string
+      screenshots:
+        additionalProperties:
+          items:
+            format: int32
+            type: integer
+          type: array
+        type: object
+      sessionID:
+        description: sessionID to send event to
+        type: string
+      timestamp:
+        description: timestamp of the response
+        type: string
+      value:
+        description: return value
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserOpts:
+    properties:
+      azureOpenaiApiVersion:
+        description: API version for Azure OpenAI LLM client
+        type: string
+      azureOpenaiDeploymentName:
+        description: deployment name for Azure OpenAI LLM client
+        type: string
+      azureOpenaiEndpoint:
+        description: endpoint for Azure OpenAI LLM client
+        type: string
+      azureOpenaiKey:
+        description: API key for Azure OpenAI LLM client
+        type: string
+      cookies:
+        description: cookies to set before executing actions
+        items:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserCookie'
+        type: array
+      errorOnOperationTimeout:
+        default: true
+        description: 'whether to return error when a single operation times out (default:
+          true)'
+        type: boolean
+      headers:
+        additionalProperties:
+          type: string
+        description: additional headers to set before executing actions
+        type: object
+      height:
+        default: 1080
+        description: height of the browser window
+        example: 1080
+        type: integer
+      llmClient:
+        description: which LLM client to use
+        type: string
+      ollamaApiKey:
+        description: API key for Ollama LLM client
+        type: string
+      ollamaUrl:
+        description: URL for Ollama LLM client
+        type: string
+      openaiModel:
+        description: model for OpenAI LLM client
+        type: string
+      openaiOrganization:
+        description: organization for OpenAI LLM client
+        type: string
+      openaiToken:
+        description: token for OpenAI LLM client
+        type: string
+      operationTimeout:
+        default: 20s
+        description: 'timeout to execute a single command (default: 20s)'
+        example: 20s
+        type: string
+      program:
+        description: program to run (required)
+        type: string
+      returnScreenshot:
+        default: false
+        description: whether to return screenshot after execution
+        type: boolean
+      secrets:
+        additionalProperties:
+          type: string
+        description: program secrets to use (values can be obtained as getSecret('name'))
+        type: object
+      timeout:
+        default: 60s
+        description: 'duration string in go duration format (e.g.: 10s)'
+        example: 60s
+        type: string
+      useProxy:
+        description: 'use specific proxy server (default: undefined)'
+        type: string
+      userAgent:
+        description: 'use user-agent (default: undefined)'
+        type: string
+      values:
+        additionalProperties:
+          type: string
+        description: program values to use (values can be obtained as getValue('name'))
+        type: object
+      waitForFileDownload:
+        default: false
+        description: whether to wait until file is downloaded
+        type: boolean
+      width:
+        default: 1920
+        description: width of the browser window
+        example: 1920
+        type: integer
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserResponse:
+    properties:
+      cookies:
+        items:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserCookie'
+        type: array
+      downloadedFile:
+        items:
+          type: integer
+        type: array
+      error:
+        type: string
+      generationInfo:
+        additionalProperties: {}
+        description: metadata related to generation via LLM
+        type: object
+      log:
+        items:
+          type: string
+        type: array
+      outHtml:
+        type: string
+      readabilityArticle:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Article'
+      screenshot:
+        items:
+          type: integer
+        type: array
+      screenshots:
+        additionalProperties:
+          items:
+            format: int32
+            type: integer
+          type: array
+        type: object
+      sessionID:
+        description: sessionID of the browser
+        type: string
+      url:
+        type: string
+      value: {}
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.Config:
+    properties:
+      browser:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserOpts'
+      hold:
+        description: 'tells baas to hold the session and send SSE events instead of
+          just starting and responding immediately (default: true)'
+        type: boolean
+      maxAttempts:
+        description: 'max amount of attempts to fetch/process (default: 3)'
+        type: integer
+      sessionID:
+        description: sessionID to use when running async requests (must be unique)
+        type: string
+      useRandomProxy:
+        description: 'whether to use random proxy from the configured proxy pool (default:
+          true)'
+        type: boolean
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ControlConfig:
+    properties:
+      sessionID:
+        description: sessionID to use when running async requests (must be unique)
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ExtractMarkdownResult:
+    properties:
+      markdown:
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.HtmlTemplate:
+    properties:
+      accentColor:
+        type: string
+      appendHtml:
+        type: string
+      companyName:
+        type: string
+      companyTagline:
+        type: string
+      customCss:
+        type: string
+      documentTitle:
+        type: string
+      fontFamily:
+        type: string
+      fontSize:
+        type: number
+      footerText:
+        type: string
+      headerHeight:
+        type: number
+      headerLogo:
+        type: string
+      headerLogoHeight:
+        type: number
+      headerLogoPosition:
+        type: string
+      headerLogoWidth:
+        type: number
+      headerText:
+        type: string
+      headingFont:
+        type: string
+      headingScale:
+        type: number
+      margins:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.HtmlTemplateMargins'
+      prependHtml:
+        type: string
+      primaryColor:
+        type: string
+      secondaryColor:
+        type: string
+      showPageNumbers:
+        type: boolean
+      textColor:
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.HtmlTemplateMargins:
+    properties:
+      bottom:
+        type: number
+      left:
+        type: number
+      right:
+        type: number
+      top:
+        type: number
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ParseDocResult:
+    properties:
+      meta:
+        allOf:
+        - $ref: '#/definitions/service.ResultMeta'
+        description: metadata related to processing
+      result: {}
+      usedBrowser:
+        description: if browser was used while processing
+        type: boolean
+      usedProxy:
+        description: which proxy server was used for fetching
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ParseToMarkdownResult:
+    properties:
+      markdown:
+        description: markdown output
+        type: string
+      meta:
+        allOf:
+        - $ref: '#/definitions/service.ResultMeta'
+        description: metadata related to processing
+      usedBrowser:
+        description: if browser was used while processing
+        type: boolean
+      usedProxy:
+        description: which proxy server was used for fetching
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.PdfToImagesConfig:
+    properties:
+      batchSize:
+        type: integer
+      density:
+        type: integer
+      outputFormat:
+        type: string
+      pdfUrl:
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.PdfToImagesResult:
+    properties:
+      imageUrls:
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityConfig:
+    properties:
+      URL:
+        description: which URL to fetch (e.g. "https://en.wikipedia.org/Schema_migration")
+        type: string
+      csvDelimiter:
+        description: 'specify delimiter for CSV output (default: ",")'
+        type: string
+      doNotUseCache:
+        description: do not use cache when processing, always fetch fresh data
+        type: boolean
+      embedResources:
+        description: 'whether to embed resources (images, stylesheets) into the returned
+          HTML (default: false)'
+        type: boolean
+      fallbackToBrowser:
+        description: whether to fallback to browser if fetch didn't succeed
+        type: boolean
+      forceMimeType:
+        description: force specific MIME type when processing (e.g. "application/pdf")
+        type: string
+      forcePdf:
+        description: whether to convert docs to PDF before parsing
+        type: boolean
+      forceUseBrowser:
+        description: whether to use browser first
+        type: boolean
+      headers:
+        additionalProperties:
+          type: string
+        description: additional headers to send with the request
+        type: object
+      ignoreMimetype:
+        description: ignore MIME type when processing
+        type: boolean
+      maxAttempts:
+        description: 'max amount of attempts to fetch/process (default: 3)'
+        type: integer
+      parseOutputFormat:
+        allOf:
+        - $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.parseOutputFormat'
+        description: specify output format for parsed documents
+      parseTableData:
+        description: whether to extract table data from the document
+        type: boolean
+      returnFullHtml:
+        description: 'whether to return raw HTML output from fetch in addition to
+          readability article (default: false)'
+        type: boolean
+      returnPandoc:
+        description: 'specify one of supported pandoc formats to return HTML converted
+          onto it in addition to readability article (default: false)'
+        type: string
+      timeout:
+        description: overall timeout in duration format, e.g. `10s`, cannot exceed
+          60s
+        type: string
+      useProxy:
+        description: 'use specific proxy in format host:port (default: undefined)'
+        type: string
+      useRandomProxy:
+        description: 'whether to use random proxy from the configured proxy pool (default:
+          false)'
+        type: boolean
+      userAgent:
+        description: 'which User-Agent to set whilst fetching (default: "*")'
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityResult:
+    properties:
+      article:
+        allOf:
+        - $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Article'
+        description: result of readability processing
+      meta:
+        allOf:
+        - $ref: '#/definitions/service.ResultMeta'
+        description: metadata related to processing
+      pandoc:
+        description: HTML content converted to Pandoc (if requested)
+        type: string
+      rawContent:
+        description: raw content of the fetched URL (if requested)
+        type: string
+      tables:
+        description: extracted table data (if any)
+        items:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityTable'
+        type: array
+      usedBrowser:
+        description: if browser was used while processing
+        type: boolean
+      usedProxy:
+        description: which proxy server was used for fetching
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityTable:
+    properties:
+      headers:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      rows:
+        items:
+          items: {}
+          type: array
+        type: array
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.RenderMarkdownConfig:
+    properties:
+      markdown:
+        type: string
+      outputFormat:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.outputFormat'
+      preprocessMath:
+        type: boolean
+      scaleFactor:
+        type: number
+      template:
+        $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.HtmlTemplate'
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.RenderMarkdownResult:
+    properties:
+      html:
+        type: string
+      outputUrl:
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.Result:
+    properties:
+      meta:
+        allOf:
+        - $ref: '#/definitions/service.ResultMeta'
+        description: metadata related to processing
+      result:
+        allOf:
+        - $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserResponse'
+        description: result returned by browser
+      usedProxy:
+        description: which proxy server was used for fetching
+        type: string
+    type: object
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.outputFormat:
+    enum:
+    - html
+    - pdf
+    - docx
+    type: string
+    x-enum-varnames:
+    - Html
+    - Pdf
+    - Docx
+  github_com_Ursa-Minor-Beta_baas_pkg_dto.parseOutputFormat:
+    enum:
+    - markdown
+    - json
+    type: string
+    x-enum-varnames:
+    - Markdown
+    - Json
+  internal_service.BaasStatus:
+    properties:
+      aipandocCommit:
+        type: string
+      browserStatus:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_service.Docs:
+    properties:
+      commands:
+        additionalProperties:
+          type: string
+        type: object
+      commandsJSON:
+        type: string
+    type: object
+  internal_service.Status:
+    properties:
+      meta:
+        $ref: '#/definitions/service.ResultMeta'
+      status:
+        $ref: '#/definitions/internal_service.BaasStatus'
+      version:
+        type: string
+    type: object
+  service.ResultMeta:
+    properties:
+      cost:
+        type: number
+      error:
+        description: whether error happened whilst processing
+        type: string
+      isAuthorized:
+        type: boolean
+      requestFinishedAt:
+        type: string
+      requestStartedAt:
+        type: string
+      requestTime:
+        $ref: '#/definitions/time.Duration'
+      requestUID:
+        description: unique identifier of job for debugging purposes
+        type: string
+    type: object
+  time.Duration:
+    enum:
+    - -9223372036854775808
+    - 9223372036854775807
+    - 1
+    - 1000
+    - 1000000
+    - 1000000000
+    - 60000000000
+    - 3600000000000
+    - 1
+    - 1000
+    - 1000000
+    - 1000000000
+    - 1
+    - 1000
+    - 1000000
+    - 1000000000
+    - 60000000000
+    format: int64
+    type: integer
+    x-enum-varnames:
+    - minDuration
+    - maxDuration
+    - Nanosecond
+    - Microsecond
+    - Millisecond
+    - Second
+    - Minute
+    - Hour
+    - Nanosecond
+    - Microsecond
+    - Millisecond
+    - Second
+    - Nanosecond
+    - Microsecond
+    - Millisecond
+    - Second
+    - Minute
+info:
+  contact: {}
+paths:
+  /api/async/actions:
+    get:
+      consumes:
+      - application/json
+      description: return list of supported actions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/async/message:
+    post:
+      consumes:
+      - application/json
+      description: send new message to browser
+      parameters:
+      - description: browser message
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserMessageIn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserMessageOut'
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/async/sessions:
+    get:
+      consumes:
+      - application/json
+      description: returns active sessions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_internal_sessions.ActiveSession'
+            type: array
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/async/sessions/active:
+    get:
+      consumes:
+      - application/json
+      description: checks if session is active
+      parameters:
+      - description: sessionID to check
+        example: 61c135fa-b604-4ff8-bebc-aefee8155219
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_internal_sessions.IsActive'
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/async/sessions/cleanup:
+    post:
+      consumes:
+      - application/json
+      description: cleans up expired sessions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/async/start:
+    post:
+      consumes:
+      - application/json
+      description: start browser async session for async interactions
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Config'
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Result'
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/async/stop:
+    post:
+      consumes:
+      - application/json
+      description: stop browser async session
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ControlConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.BrowserMessageOut'
+      security:
+      - Bearer: []
+      tags:
+      - async
+  /api/docs:
+    get:
+      consumes:
+      - application/json
+      description: returns documentation
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_service.Docs'
+      tags:
+      - docs
+  /api/eke-extract:
+    post:
+      consumes:
+      - multipart/form-data
+      description: process a binary file uploaded directly (multipart/form-data) and
+        return readable content.
+      parameters:
+      - description: binary file bytes
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: MIME type of the file
+        in: formData
+        name: mimeType
+        required: true
+        type: string
+      - description: pandoc output format (e.g. markdown)
+        in: formData
+        name: returnPandoc
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityResult'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/extract-markdown:
+    post:
+      consumes:
+      - application/json
+      description: extracts markdown from a document by its URL.
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ExtractMarkdownResult'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/parse:
+    post:
+      consumes:
+      - application/json
+      description: parses document by its URL and returns the parsed document.
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ParseDocResult'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/parse-to-markdown-kv:
+    post:
+      consumes:
+      - application/json
+      description: 'Parses documents (Excel: XLSX/XLSM/XLSB/XLS/XLTX/XLTM/XLT, Word:
+        DOCX/DOC, PowerPoint: PPTX/PPT, CSV, TXT) and returns standard Markdown. For
+        Excel files, each sheet becomes a separate section with ## heading.'
+      parameters:
+      - description: parse config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ParseToMarkdownResult'
+      security:
+      - Bearer: []
+      tags:
+      - parse
+  /api/pdf-to-images:
+    post:
+      consumes:
+      - application/json
+      description: converts PDF document by its URL to images and returns the URLs
+        of the images.
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.PdfToImagesConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.PdfToImagesResult'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/process:
+    post:
+      consumes:
+      - application/json
+      description: process URL by config
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Config'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.Result'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/readability:
+    post:
+      consumes:
+      - application/json
+      description: process URL by config
+      parameters:
+      - description: run config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.ReadabilityResult'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/render-markdown:
+    post:
+      consumes:
+      - application/json
+      description: renders markdown content to HTML.
+      parameters:
+      - description: markdown config
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.RenderMarkdownConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ursa-Minor-Beta_baas_pkg_dto.RenderMarkdownResult'
+      security:
+      - Bearer: []
+      tags:
+      - run
+  /api/status:
+    get:
+      consumes:
+      - application/json
+      description: returns documentation
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_service.Status'
+      tags:
+      - docs
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and API token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

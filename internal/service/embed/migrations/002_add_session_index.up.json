@@ -1,0 +1,46 @@
+[
+  {
+    "drop": "messages_in",
+    "comment": "drop collection messages_in"
+  },
+  {
+    "drop": "messages_out",
+    "comment": "drop collection messages_out"
+  },
+  {
+    "create": "browser_in",
+    "capped": true,
+    "size": 100000000,
+    "comment": "creating messages in collection of 1GB limit"
+  },
+  {
+    "create": "browser_out",
+    "capped": true,
+    "size": 100000000,
+    "comment": "creating messages out collection of 1GB limit"
+  },
+  {
+    "createIndexes": "browser_in",
+    "indexes": [
+      {
+        "key": {
+          "sessionId": 1
+        },
+        "name": "sessionId_1"
+      }
+    ],
+    "comment": "Create index on sessionId field for performance optimization"
+  },
+  {
+    "createIndexes": "browser_out",
+    "indexes": [
+      {
+        "key": {
+          "sessionId": 1
+        },
+        "name": "sessionId_1"
+      }
+    ],
+    "comment": "Create index on sessionId field for performance optimization"
+  }
+]

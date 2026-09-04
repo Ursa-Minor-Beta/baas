@@ -1,0 +1,51 @@
+{
+  "name": "baas-scripts",
+  "version": "1.0.0",
+  "scripts": {},
+  "license": "Apache-2.0",
+  "description": "Node helpers backing the BaaS Markdown, PDF and HTML endpoints",
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "commander": "^14.0.1",
+    "hast-util-to-html": "^9.0.5",
+    "markmap-lib": "^0.18.12",
+    "markmap-render": "^0.18.12",
+    "node-poppler": "^8.0.4",
+    "pdf2pic": "^3.2.0",
+    "playwright": "^1.56.0",
+    "postcss": "^8.5.6",
+    "postcss-custom-properties": "^14.0.6",
+    "puppeteer": "^25.10.0",
+    "rehype-mathjax": "^7.1.0",
+    "rehype-mermaid": "^3.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "svg2img": "^1.0.0-beta.2",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
+    "vega": "^6.2.0",
+    "vega-lite": "^6.4.1",
+    "zx": "^8.8.4"
+  },
+  "overrides": {
+    "canvas": "^3.0.0",
+    "inflight": "npm:@pkgjs/inflight@^1.0.1",
+    "rimraf": "^6.0.1",
+    "glob": "^11.0.0",
+    "@jimp/core": {
+      "phin": "^3.7.1"
+    },
+    "xhr": {
+      "global": {
+        "min-document": "^2.19.0"
+      }
+    },
+    "phin": "^3.7.1",
+    "min-document": "^2.19.0",
+    "@xmldom/xmldom": "^0.9.12"
+  },
+  "private": true
+}

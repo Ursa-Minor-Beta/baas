@@ -1,0 +1,22 @@
+[
+  {
+    "drop": "messages_in",
+    "comment": "drop collection messages_in"
+  },
+  {
+    "drop": "messages_out",
+    "comment": "drop collection messages_out"
+  },
+  {
+    "create": "messages_in",
+    "capped": true,
+    "size": 1099511627776,
+    "comment": "creating messages in collection of 1GB limit"
+  },
+  {
+    "create": "messages_out",
+    "capped": true,
+    "size": 1099511627776,
+    "comment": "creating messages out collection of 1GB limit"
+  }
+]

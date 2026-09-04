@@ -1,0 +1,22 @@
+# Local configuration and secrets
+.env
+*.env
+!.env.example
+
+# Build outputs
+dist
+bin
+/out
+
+# Node.js
+node_modules
+npm-debug.log*
+
+# Python
+.venv
+__pycache__/
+
+# Editors
+.idea
+*.iml
+.vscode

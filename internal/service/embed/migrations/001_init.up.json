@@ -1,0 +1,8 @@
+[
+  {
+    "create": "readability_cache",
+    "capped": true,
+    "size": 104857600,
+    "comment": "creating cache collection with max 100Mb in size"
+  }
+]

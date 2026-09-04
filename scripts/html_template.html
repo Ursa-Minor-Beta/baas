@@ -1,0 +1,64 @@
+<div class="pdf-template-header" style="
+    width: 100%;
+    height: {headerHeight}px;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+">
+    <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        flex-grow: 1;
+    ">
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        ">
+            {headerLogo}
+
+            <div style="display: flex; flex-direction: column;">
+                <div style="
+                    font-weight: 700;
+                    font-size: {companyNameFontSize}px;
+                    color: {primaryColor};
+                    line-height: 1.2;
+                ">{companyName}</div>
+
+                <div style="
+                    font-size: {companyTaglineFontSize}px;
+                    color: {secondaryColor};
+                    line-height: 1.2;
+                ">{companyTagline}</div>
+            </div>
+        </div>
+
+        <div style="
+            text-align: right;
+            color: {secondaryColor};
+        ">
+            <div style="
+                font-weight: 600;
+                font-size: {documentTitleFontSize}px;
+                color: {primaryColor};
+                margin-bottom: 4px;
+            ">{documentTitle}</div>
+
+            <div style="
+                font-size: {exportDateFontSize}px;
+            ">{exportDate}</div>
+
+            <div style="
+                font-size: {headerTextFontSize}px;
+                margin-top: 4px;
+            ">{headerText}</div>
+        </div>
+    </div>
+
+    <div style="
+        border-bottom: 2px solid {primaryColor};
+        width: 100%;
+    "></div>
+</div>

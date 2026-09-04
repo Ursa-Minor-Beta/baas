@@ -1,0 +1,14 @@
+[
+  {
+    "create": "messages_in",
+    "capped": true,
+    "size": 10000,
+    "comment": "creating messages in collection"
+  },
+  {
+    "create": "messages_out",
+    "capped": true,
+    "size": 10000,
+    "comment": "creating messages out collection"
+  }
+]

@@ -1,0 +1,20 @@
+# Editors
+.idea
+*.iml
+.vscode
+
+# Local config and secrets
+.env
+*.env
+!.env.example
+
+# Build outputs
+dist
+bin
+out
+node_modules
+
+# Docs and CI metadata not needed in the build context
+*.md
+!README.md
+LICENSE

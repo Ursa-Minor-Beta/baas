@@ -1,0 +1,114 @@
+:root {
+  --primary-color: {primaryColor};
+  --secondary-color: {secondaryColor};
+  --accent-color: {accentColor};
+  --text-color: {textColor};
+  --font-family: {fontFamily};
+  --heading-font: {headingFont};
+  --font-size: {fontSize}px;
+  --h1-font-size: {h1FontSize}px;
+  --h2-font-size: {h2FontSize}px;
+  --h3-font-size: {h3FontSize}px;
+  --code-font-size: {codeFontSize}px;
+}
+
+/* Enhanced Header Styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--heading-font) !important;
+  color: var(--primary-color) !important;
+  font-weight: 600 !important;
+}
+
+h1 {
+  font-size: var(--h1-font-size) !important;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 8px;
+  margin-bottom: 20px !important;
+}
+
+h2 {
+  font-size: var(--h2-font-size) !important;
+  color: var(--secondary-color) !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+}
+
+h3 {
+  font-size: var(--h3-font-size) !important;
+  margin-top: 20px !important;
+  margin-bottom: 12px !important;
+}
+
+/* Enhanced Visual Elements */
+.markmap-container,
+.mermaid {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 24px 0;
+  background: #fafafa;
+}
+
+/* Note: Vega chart styles are now handled by centralized visualization style system */
+
+table {
+  border-collapse: collapse;
+  border: 1px solid var(--secondary-color);
+  margin: 20px 0;
+}
+
+table th {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px;
+  font-weight: 600;
+}
+
+table td {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+}
+
+table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+pre,
+.code-block {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 16px;
+  font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: var(--code-font-size);
+  margin: 16px 0;
+}
+
+/* Links and accents */
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+strong,
+b {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+blockquote {
+  border-left: 4px solid var(--accent-color);
+  margin: 16px 0;
+  padding-left: 16px;
+  font-style: italic;
+  color: var(--secondary-color);
+}

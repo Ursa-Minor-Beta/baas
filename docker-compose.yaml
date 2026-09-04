@@ -1,0 +1,65 @@
+# Local stack: MongoDB plus BaaS.
+#
+# Build the base image once before the first run:
+#   docker build -f base.Dockerfile -t baas-base:local .
+#
+# Then:
+#   cp .env.example .env      # set API_KEY and, if you use LLM actions, an LLM provider
+#   docker compose up --build
+#
+# BaaS listens on http://localhost:8090; VNC into the browser on localhost:5900.
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: baas-mongodb
+    ports:
+      - "27017:27017"
+    command: /usr/bin/mongod --replSet baas --bind_ip 0.0.0.0 --port 27017
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      # MongoDB change streams back the async session message bus, so the node
+      # has to be a replica set even when it is a single instance.
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'baas',members:[{_id:0,host:'host.docker.internal:27017'}]}) }" | mongosh --port 27017 --quiet
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      retries: 30
+
+  baas:
+    image: baas:local
+    container_name: baas
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        BASE_IMAGE: baas-base:local
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PORT: "8090"
+      MONGO_URI: "mongodb://host.docker.internal:27017/baas"
+      BROWSER_EXECUTABLE: /usr/bin/google-chrome
+      CHROME_EXTENSIONS_DIR: /app/profile/Extensions
+      PYTHON_PATH: python3
+      # Runs the HTTP server directly instead of the AWS Lambda adapter.
+      LOCAL_DEBUG: "true"
+      SIMPLE_CONTAINER_AWS_LAMBDA_ROUTING_TYPE: function-url
+      SIMPLE_CONTAINER_AWS_LAMBDA_INVOKE_MODE: BUFFERED
+      USE_RESPONSE_STREAM: "true"
+      ENABLE_VNC: "true"
+      SE_VNC_NO_PASSWORD: "1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8090:8090"
+      - "5900:5900"
+    healthcheck:
+      test: "curl --silent --fail http://localhost:8090/api/status > /dev/null || exit 1"
+      timeout: 30s
+      interval: 90s
+      retries: 10

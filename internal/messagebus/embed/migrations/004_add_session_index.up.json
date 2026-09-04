@@ -1,0 +1,28 @@
+[
+  {
+    "drop": "messages_in",
+    "comment": "drop old messages_in collection"
+  },
+  {
+    "drop": "messages_out",
+    "comment": "drop old messages_out collection"
+  },
+  {
+    "create": "messagebus",
+    "capped": true,
+    "size": 1073741824,
+    "comment": "create unified messagebus collection with 1GB limit"
+  },
+  {
+    "createIndexes": "messagebus",
+    "indexes": [
+      {
+        "key": {
+          "sessionId": 1
+        },
+        "name": "sessionId_1"
+      }
+    ],
+    "comment": "Create index on sessionId field for performance optimization"
+  }
+]
