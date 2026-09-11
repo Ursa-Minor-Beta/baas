@@ -31,9 +31,14 @@ means installing those yourself.
 
 ## Run it in a container
 
-Build the base image once. It carries the browser, a Pandoc fork, Node.js and the
-document-processing dependencies, and takes a while because Pandoc is compiled
-from source:
+Build the base image once. It carries the browser, a Pandoc fork, Node.js and
+the document-processing dependencies.
+
+Budget real time for this: it compiles Pandoc from source with GHC, which takes
+tens of minutes on a warm machine and downloads a couple of gigabytes first.
+The fork is not optional, it adds the xlsx and pptx readers the document
+endpoints rely on. Build it once, push it to your own registry, and point
+`BASE_IMAGE` at that copy for everything after.
 
 ```bash
 docker build -f base.Dockerfile -t baas-base:local .
@@ -198,6 +203,12 @@ Current versions reject this immediately instead of waiting.
 of the program string. It is a JSON string value, so every quote inside it has
 to be escaped exactly once: `\"` in the JSON, not `"` and not `\\"`. A stray
 backslash makes the JavaScript unparseable and the run aborts.
+
+**`Release file ... is expired` while building the base image.** You are on a
+version of `base.Dockerfile` that still used the bullseye-based `haskell:9.10.2`
+tag; Debian bullseye is past EOL and its security repository now serves an
+expired Release file, which makes `apt-get update` exit non-zero. Pull the
+current version, which builds on bookworm.
 
 **`MongoDB connection failed` or the message bus will not start.** The async
 session bus uses change streams, which need a replica set. Compose sets up a

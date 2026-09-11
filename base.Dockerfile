@@ -12,32 +12,48 @@
 # arm64 host fails with "no match for platform in manifest"; add
 # --platform=linux/amd64 if you need it anyway.
 ARG SELENIUM_BASE_IMAGE="selenium/standalone-chromium:143.0"
-FROM haskell:9.10.2 AS pandoc-build-stage
+ARG AIPANDOC_COMMIT="3ac23e0829d7426a4026216dff2f78721095e04c"
 
-ARG AIPANDOC_COMMIT="3ac23e0"
+# Debian bookworm, not the bullseye-based default tag: bullseye-security has
+# passed EOL and now serves an expired Release file, which makes apt-get update
+# exit non-zero and fails the build.
+#
+# This image ships GHC 9.10.3 with system-ghc:true / install-ghc:false, while
+# aipandoc pins resolver lts-24.9, which wants exactly 9.10.2. The build steps
+# below pass --no-system-ghc --install-ghc so Stack fetches the GHC the
+# resolver asks for instead of failing on the mismatch.
+FROM haskell:9.10.3-bookworm AS pandoc-build-stage
 
-RUN apt update && apt install -y \
+ARG AIPANDOC_COMMIT
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
         libgmp-dev \
         liblua5.4-dev \
         pkg-config \
         zlib1g-dev \
-        unzip
+        unzip && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /projects
-RUN curl https://codeload.github.com/aantich/aipandoc/zip/${AIPANDOC_COMMIT} -o /projects/aipandoc.zip && \
+RUN curl -fsSL https://codeload.github.com/aantich/aipandoc/zip/${AIPANDOC_COMMIT} -o /projects/aipandoc.zip && \
     unzip /projects/aipandoc.zip -d /projects && \
     mv /projects/aipandoc-${AIPANDOC_COMMIT} /projects/aipandoc && \
     rm -rf /projects/aipandoc.zip
 
 WORKDIR /projects/aipandoc
-RUN stack build && stack install
+RUN stack --no-system-ghc --install-ghc build && \
+    stack --no-system-ghc --install-ghc install
 
 # Runtime stage: base image with all pre-built dependencies
 FROM ${SELENIUM_BASE_IMAGE}
 
-ARG NODE_VERSION=22.13.0
+ARG AIPANDOC_COMMIT
+ARG NODE_VERSION=22.23.2
+# Pinned deliberately: `npm@latest` raises its Node floor over time and silently
+# breaks this build when it outruns NODE_VERSION.
+ARG NPM_VERSION=11.19.1
 
 # OCI-compliant image metadata
 LABEL org.opencontainers.image.title="BaaS base" \
@@ -45,7 +61,8 @@ LABEL org.opencontainers.image.title="BaaS base" \
       org.opencontainers.image.source="https://github.com/Ursa-Minor-Beta/baas" \
       org.opencontainers.image.licenses="Apache-2.0" \
       pandoc.commit="${AIPANDOC_COMMIT}" \
-      node.version="${NODE_VERSION}"
+      node.version="${NODE_VERSION}" \
+      npm.version="${NPM_VERSION}"
 
 # Create non-root user and install all dependencies in single layer
 USER root
@@ -54,20 +71,28 @@ RUN groupadd -r -g 65532 appgroup && \
     # Apply security updates first (fixes CVE-2025-68973, CVE-2025-38666, etc.)
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
-    # Install runtime dependencies
+    # Install runtime dependencies. No compiler or -dev headers here: they were
+    # only ever needed to build the canvas npm package from source, nothing in
+    # the dependency tree pulls canvas any more, and every remaining native
+    # package ships a prebuilt binary. Keeping them also breaks the build, since
+    # this image carries Debian runtime libraries while its apt sources serve
+    # Ubuntu, so the matching -dev packages are uninstallable.
     apt-get install -y --no-install-recommends \
         ca-certificates curl dumb-init jq \
         libreoffice poppler-utils antiword qpdf mupdf-tools wmctrl graphicsmagick ghostscript \
-        python3 python3-pip xvfb fluxbox \
-        build-essential pkg-config libcairo2-dev libpango1.0-dev \
-        libjpeg-dev libgif-dev librsvg2-dev libpixman-1-dev && \
+        python3 python3-pip xvfb fluxbox && \
     apt-get purge -y apt-utils lsb-release software-properties-common && \
-    # Install Node.js LTS
-    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" -o node.tar.gz && \
+    # Install Node.js LTS. Node names the arm64 tarball arm64 and the x86_64
+    # one x64, so map from dpkg's architecture rather than hardcoding either.
+    case "$(dpkg --print-architecture)" in \
+        amd64) NODE_ARCH=x64 ;; \
+        arm64) NODE_ARCH=arm64 ;; \
+        *) echo "unsupported architecture $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -o node.tar.gz && \
     tar -xzf node.tar.gz -C /usr/local --strip-components=1 && \
     rm node.tar.gz && \
-    # Fix CVE-2025-64756: Upgrade npm to version with fixed glob package
-    npm install -g npm@latest && \
+    npm install -g "npm@${NPM_VERSION}" && \
     # Install Python packages (use system pip to install globally for all Python versions)
     # Includes security-critical packages: urllib3>=2.6.3 (CVE-2025-66418, CVE-2025-66471, CVE-2026-21441)
     # and pdfminer.six>=20251230 (GHSA-f83h-ghpp-7wcc)
