@@ -43,8 +43,13 @@ services:
     environment:
       PORT: "8090"
       MONGO_URI: "mongodb://host.docker.internal:27017/baas"
-      # BROWSER_EXECUTABLE is set by the base image, which resolves chrome or
-      # chromium depending on which base was used.
+      # The base image resolves chrome or chromium and always leaves it at this
+      # path, so it is the same value whichever base you built against.
+      BROWSER_EXECUTABLE: /usr/bin/google-chrome
+      # Run the browser with a visible window on the container's Xvfb display
+      # rather than headless, so the VNC session below actually shows something.
+      # Headless is faster; flip this to "false" if you do not need to watch.
+      BROWSER_HEADFUL: "true"
       CHROME_EXTENSIONS_DIR: /app/profile/Extensions
       PYTHON_PATH: python3
       # Runs the HTTP server directly instead of the AWS Lambda adapter.
