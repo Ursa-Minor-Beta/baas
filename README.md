@@ -31,13 +31,19 @@ means installing those yourself.
 
 ## Run it in a container
 
-Build the base image once. It carries Chrome, a Pandoc fork, Node.js and the
+Build the base image once. It carries the browser, a Pandoc fork, Node.js and the
 document-processing dependencies, and takes a while because Pandoc is compiled
 from source:
 
 ```bash
 docker build -f base.Dockerfile -t baas-base:local .
 ```
+
+It builds on both x86 and Apple Silicon. The default base is
+`selenium/standalone-chromium`, which publishes arm64; Selenium's
+`standalone-chrome` images are amd64-only, so if you override
+`SELENIUM_BASE_IMAGE` with one of those on an arm64 machine the build fails
+with `no match for platform in manifest` and you need `--platform=linux/amd64`.
 
 Then configure and start the stack:
 
@@ -88,10 +94,17 @@ curl -X POST http://localhost:8090/api/process \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_KEY" \
   -d '{
-    "program": "var status = navigateStatus(\"https://example.com\"); if (status != 200) { throw \"got \" + status; } waitReady(\"body\"); outerHtml(\"body\");",
-    "timeout": "30s"
+    "browser": {
+      "program": "var status = navigateStatus(\"https://example.com\"); if (status != 200) { throw \"got \" + status; } waitReady(\"body\"); outerHtml(\"body\");",
+      "timeout": "30s"
+    }
   }'
 ```
+
+Everything the browser does goes inside the `browser` object. Fields placed at
+the top level are silently ignored by the JSON decoder, so a request with
+`program` outside `browser` binds with nothing to run; the server rejects that
+with a message naming the field rather than starting a browser.
 
 The program is evaluated by an embedded JavaScript interpreter with browser
 actions bound as functions. `GET /api/async/actions` returns the full list with
@@ -168,6 +181,27 @@ every other endpoint works.
 `profile/Extensions/README.md`. None ship with this repository. Extensions apply
 only on the undetected-browser path; the plain headless path runs with
 `--disable-extensions`.
+
+## Troubleshooting
+
+**`no match for platform in manifest` when building the base image.** You
+overrode `SELENIUM_BASE_IMAGE` with a `standalone-chrome` tag on an arm64
+machine; those are amd64-only. Drop the override to get the default
+`standalone-chromium`, or add `--platform=linux/amd64`.
+
+**A request sits there and fails only when the timeout expires, with
+`url: about:blank` and an empty result.** The program never reached the server.
+It belongs inside the `browser` object; see [First request](#first-request).
+Current versions reject this immediately instead of waiting.
+
+**`context deadline exceeded` on a program that looks right.** Check the quoting
+of the program string. It is a JSON string value, so every quote inside it has
+to be escaped exactly once: `\"` in the JSON, not `"` and not `\\"`. A stray
+backslash makes the JavaScript unparseable and the run aborts.
+
+**`MongoDB connection failed` or the message bus will not start.** The async
+session bus uses change streams, which need a replica set. Compose sets up a
+single-node one; a plain `docker run mongo` does not.
 
 ## Exposing it
 
