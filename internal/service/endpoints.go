@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -370,6 +371,9 @@ func (s *Server) asyncStartEndpoint(c service.HttpAdapter) error {
 func (s *Server) processEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
 	if result, ok := service.WithReadBody(ctx, s, c, "process URL", func(cfg *dto.Config) (*dto.Result, error) {
+		if err := validateProcessConfig(cfg); err != nil {
+			return nil, err
+		}
 		cfg = s.withConfigDefaults(ctx, cfg)
 		ctx = s.Logger().WithValue(ctx, "config", cfg.Sanitized())
 		res, err := retry.With(retry.Config[*dto.Result]{
@@ -418,6 +422,20 @@ func (s *Server) withBrowserMessageInBody(ctx context.Context, c service.HttpAda
 		}
 	}
 	return res, true
+}
+
+// validateProcessConfig rejects a request that carries nothing to run. The JSON
+// decoder ignores unknown top-level fields, so a body that puts "program"
+// outside the "browser" object binds cleanly with an empty program; without
+// this check the request launches Chrome, sits on about:blank and fails only
+// when the timeout expires.
+func validateProcessConfig(cfg *dto.Config) error {
+	if strings.TrimSpace(cfg.Browser.Program) == "" {
+		return errors.Errorf(
+			`browser.program is empty: the program belongs inside the "browser" object, ` +
+				`e.g. {"browser":{"program":"navigate('https://example.com');","timeout":"30s"}}`)
+	}
+	return nil
 }
 
 func (s *Server) withConfigDefaults(ctx context.Context, runConfig *dto.Config) *dto.Config {

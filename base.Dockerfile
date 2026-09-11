@@ -3,12 +3,15 @@
 #   docker build -f base.Dockerfile -t baas-base:local .
 #
 # Stage 1 compiles the aipandoc fork of Pandoc; stage 2 assembles the runtime
-# on top of a Selenium standalone-chrome image.
+# on top of a Selenium browser image.
 #
-# Note: `selenium/standalone-chrome` may not publish arm64 manifests for all tags.
-# If you see "no match for platform in manifest", build with `--platform=linux/amd64`
-# or override `SELENIUM_BASE_IMAGE` to an arm64-capable base.
-ARG SELENIUM_BASE_IMAGE="selenium/standalone-chrome:143.0-chromedriver-143.0-20251212"
+# The default base is `standalone-chromium`, which publishes both linux/amd64
+# and linux/arm64, so this builds on Apple Silicon as well as on x86. Selenium's
+# `standalone-chrome` images are amd64-only, because Google ships no arm64
+# Chrome for Linux. Overriding SELENIUM_BASE_IMAGE with one of those on an
+# arm64 host fails with "no match for platform in manifest"; add
+# --platform=linux/amd64 if you need it anyway.
+ARG SELENIUM_BASE_IMAGE="selenium/standalone-chromium:143.0"
 FROM haskell:9.10.2 AS pandoc-build-stage
 
 ARG AIPANDOC_COMMIT="3ac23e0"
@@ -31,8 +34,7 @@ RUN curl https://codeload.github.com/aantich/aipandoc/zip/${AIPANDOC_COMMIT} -o 
 WORKDIR /projects/aipandoc
 RUN stack build && stack install
 
-# Runtime stage: Production base image with all pre-built dependencies
-# Updated to December 2025 build for security patches
+# Runtime stage: base image with all pre-built dependencies
 FROM ${SELENIUM_BASE_IMAGE}
 
 ARG NODE_VERSION=22.13.0
@@ -101,6 +103,19 @@ RUN groupadd -r -g 65532 appgroup && \
 
 # Copy pre-built Pandoc binary
 COPY --from=pandoc-build-stage --chown=appuser:appgroup /root/.local/bin/pandoc /usr/bin/pandoc
+
+# The browser binary is named chromium on the chromium images and
+# google-chrome on the chrome ones. Resolve it once here and expose it under a
+# stable name, so nothing downstream has to know which base was used.
+RUN set -eu; \
+    for candidate in google-chrome google-chrome-stable chromium chromium-browser; do \
+        if resolved=$(command -v "$candidate" 2>/dev/null); then break; fi; \
+    done; \
+    if [ -z "${resolved:-}" ]; then echo "no chrome/chromium binary in base image" >&2; exit 1; fi; \
+    [ "$resolved" = /usr/bin/google-chrome ] || ln -sf "$resolved" /usr/bin/google-chrome; \
+    echo "browser resolved to $resolved"
+
+ENV BROWSER_EXECUTABLE=/usr/bin/google-chrome
 
 WORKDIR /app
 
