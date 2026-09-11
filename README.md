@@ -76,6 +76,9 @@ you can watch the browser work on port 5900.
 
 ## Run it from source
 
+Needs Go 1.26 or newer. On an older toolchain Go will fetch a suitable one for
+you unless you have set `GOTOOLCHAIN=local`.
+
 ```bash
 cp .env.example .env
 $EDITOR .env          # set API_KEY, MONGO_URI and BROWSER_EXECUTABLE
@@ -209,6 +212,13 @@ version of `base.Dockerfile` that still used the bullseye-based `haskell:9.10.2`
 tag; Debian bullseye is past EOL and its security repository now serves an
 expired Release file, which makes `apt-get update` exit non-zero. Pull the
 current version, which builds on bookworm.
+
+**`undefined: json.SkipFunc` / `undefined: json.DiscardUnknownMembers` when
+building from source.** An old `go-json-experiment/json` against a Go toolchain
+whose `encoding/json/v2` has moved on; it bites on Go 1.27, where that package
+is compiled in by default. Pull the current version, which bumps the dependency
+and raises the floor to Go 1.26. Setting `GOEXPERIMENT` does not help, the
+build tag is satisfied either way.
 
 **`MongoDB connection failed` or the message bus will not start.** The async
 session bus uses change streams, which need a replica set. Compose sets up a

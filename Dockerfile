@@ -11,7 +11,10 @@
 # step in CI.
 
 # Build stage: compile the Go binary.
-FROM golang:1.25.5-alpine AS build-stage
+# go.mod requires Go 1.26 or newer: go-json-experiment/json, pulled in
+# indirectly by chromedp, tracks the encoding/json/v2 API in the standard
+# library, and the revision that works with Go 1.27 declares go 1.26.
+FROM golang:1.27.1-alpine AS build-stage
 ARG VERSION=0.0.0
 
 RUN apk add --no-cache binutils ca-certificates
