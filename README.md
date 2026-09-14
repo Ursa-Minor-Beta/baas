@@ -59,7 +59,13 @@ docker compose up --build
 ```
 
 That brings up MongoDB as a single-node replica set and BaaS on
-`http://localhost:8090`. Check it:
+`http://localhost:8090`. BaaS reaches MongoDB over the Compose network, and the
+database is published on host port 27018 only so you can attach a client to it;
+set `MONGO_PORT` if that clashes with something. To connect from the host, keep
+`directConnection=true` in the connection string:
+`mongodb://localhost:27018/baas?directConnection=true`.
+
+Check it:
 
 ```bash
 curl -H "Authorization: Bearer $API_KEY" http://localhost:8090/api/status
