@@ -213,6 +213,20 @@ of the program string. It is a JSON string value, so every quote inside it has
 to be escaped exactly once: `\"` in the JSON, not `"` and not `\\"`. A stray
 backslash makes the JavaScript unparseable and the run aborts.
 
+**`base name (${BASE_IMAGE}) should not be blank`.** A version of the
+`Dockerfile` that declared `ARG BASE_IMAGE` after the first `FROM`, which
+scopes it to that stage and leaves the runtime `FROM` with nothing. Pull the
+current version.
+
+**`pull access denied ... baas-base:local` when starting the stack.** The base
+image is not built yet; nothing publishes it, you build it locally. Run the
+`docker build -f base.Dockerfile` step above first.
+
+If you did build it and still get this, check `docker buildx ls`. A builder on
+the `docker-container` driver keeps its own image store and cannot see images
+in the local daemon, so it goes looking for the base in a registry. Switch back
+with `docker buildx use default`. Docker Desktop's stock builder is unaffected.
+
 **`Release file ... is expired` while building the base image.** You are on a
 version of `base.Dockerfile` that still used the bullseye-based `haskell:9.10.2`
 tag; Debian bullseye is past EOL and its security repository now serves an

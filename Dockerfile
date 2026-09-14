@@ -10,6 +10,11 @@
 # Point --build-arg BASE_IMAGE=... at your own registry copy to skip the first
 # step in CI.
 
+# Declared before the first FROM on purpose: that is the only scope a FROM
+# line can read an ARG from. Declaring it later scopes it to the preceding
+# stage and leaves FROM ${BASE_IMAGE} blank.
+ARG BASE_IMAGE=baas-base:local
+
 # Build stage: compile the Go binary.
 # go.mod requires Go 1.26 or newer: go-json-experiment/json, pulled in
 # indirectly by chromedp, tracks the encoding/json/v2 API in the standard
@@ -40,7 +45,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     strip /out/baas
 
 # Runtime stage.
-ARG BASE_IMAGE=baas-base:local
 FROM ${BASE_IMAGE}
 
 ARG VERSION=0.0.0
