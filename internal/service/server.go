@@ -197,15 +197,17 @@ func New(ctx context.Context) (*Server, error) {
 		}
 	}
 
+	// A missing document toolchain is a degraded mode, not a startup failure:
+	// base images built with the default DOCUMENT_TOOLS=off ship without it,
+	// and browser automation does not touch it. The stand-in keeps the
+	// document endpoints answering with an explanation rather than panicking
+	// on a nil converter. This used to be gated on X server availability,
+	// which has nothing to do with whether pandoc is installed.
 	pandocSvc, err := NewPandoc()
 	if err != nil {
-		// Check X server availability - if unavailable, just warn and continue
-		xServerStatus := s.checkXServerAvailability(context.Background())
-		if xServerStatus != "available" {
-			s.Logger().Warnf(context.Background(), "failed to init pandoc (X server not available): %v", err)
-		} else {
-			return nil, errors.Wrapf(err, "failed to init pandoc")
-		}
+		s.Logger().Warnf(context.Background(),
+			"document conversion disabled, pandoc toolchain not found: %v", err)
+		pandocSvc = newUnavailablePandoc(err)
 	}
 
 	tempFileManager, err := tempfiles.NewMongoManager(s.Logger(), s.database)

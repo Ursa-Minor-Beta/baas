@@ -31,24 +31,40 @@ means installing those yourself.
 
 ## Run it in a container
 
-Build the base image once. It carries the browser, a Pandoc fork, Node.js and
-the document-processing dependencies.
-
-Budget real time for this: it compiles Pandoc from source with GHC, which takes
-tens of minutes on a warm machine and downloads a couple of gigabytes first.
-The fork is not optional, it adds the xlsx and pptx readers the document
-endpoints rely on. Build it once, push it to your own registry, and point
-`BASE_IMAGE` at that copy for everything after.
+Build the base image once. It carries the browser, Node.js and, optionally,
+the document toolchain.
 
 ```bash
 docker build -f base.Dockerfile -t baas-base:local .
 ```
+
+That takes a couple of minutes. Browser automation needs nothing else.
 
 It builds on both x86 and Apple Silicon. The default base is
 `selenium/standalone-chromium`, which publishes arm64; Selenium's
 `standalone-chrome` images are amd64-only, so if you override
 `SELENIUM_BASE_IMAGE` with one of those on an arm64 machine the build fails
 with `no match for platform in manifest` and you need `--platform=linux/amd64`.
+
+### Document endpoints
+
+`/api/parse`, `/api/parse-to-markdown-kv`, `/api/render-markdown` and
+`/api/pdf-to-images` convert Office and PDF files, and that machinery is off by
+default because it dominates the build: a Pandoc fork compiled from source with
+GHC, plus LibreOffice and a JDK behind it. Turn it on when you need it:
+
+```bash
+docker build -f base.Dockerfile --build-arg DOCUMENT_TOOLS=on -t baas-base:local .
+```
+
+Budget real time for that one: tens of minutes and a couple of gigabytes. The
+fork is not replaceable with upstream Pandoc, it carries the xlsx and pptx
+readers those endpoints use. Build it once, push it to your own registry, and
+point `BASE_IMAGE` at that copy afterwards.
+
+Without it the service starts normally and says so in the log at boot; the
+document endpoints return an error naming the build argument, and every other
+endpoint is unaffected.
 
 Then configure and start the stack:
 
@@ -80,17 +96,51 @@ docker build -t baas:local --build-arg BASE_IMAGE=baas-base:local .
 Set `ENABLE_VNC=true` plus either `VNC_PASSWORD` or `SE_VNC_NO_PASSWORD=1` and
 you can watch the browser work on port 5900.
 
-## Run it from source
+## Run it from source, with only the database in Docker
+
+This is the arrangement to use while writing browser programs: Chrome opens on
+your own desktop where you can watch it, and you do not have to install
+MongoDB. Docker runs the database and nothing else.
 
 Needs Go 1.26 or newer. On an older toolchain Go will fetch a suitable one for
-you unless you have set `GOTOOLCHAIN=local`.
+you unless you have set `GOTOOLCHAIN=local`. No base image build is involved,
+so there is nothing slow here.
 
 ```bash
+docker compose up -d mongodb        # database only, published on 27018
+
 cp .env.example .env
-$EDITOR .env          # set API_KEY, MONGO_URI and BROWSER_EXECUTABLE
+$EDITOR .env                        # set API_KEY and BROWSER_EXECUTABLE
 set -a && . ./.env && set +a
 go run ./cmd/baas
 ```
+
+`MONGO_URI` in `.env.example` already points at that container, so it needs no
+editing. Two settings do:
+
+- `BROWSER_EXECUTABLE` is preset to the path inside the image. Point it at your
+  own Chrome, for example
+  `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` on macOS.
+- `BROWSER_HEADFUL=true`, already the default, is what gives you a visible
+  window instead of a headless run.
+
+BaaS comes up on `http://localhost:8090`. Stop the database with
+`docker compose down` when you are done, or add `-v` to discard its data.
+
+`/api/status` reports `browserStatus: unknown` in this mode. That is expected
+and not a fault: the check shells out to `wmctrl`, which exists in the
+container image and generally not on a developer machine, so the service
+cannot tell whether a display is there. Chrome still launches.
+
+Pointing at a MongoDB of your own instead works the same way, with one
+constraint: it has to be a replica set, because the async session message bus
+is built on change streams.
+
+Document conversion is unavailable in this mode unless you have Pandoc and
+LibreOffice installed locally; the service says so at boot and every other
+endpoint works.
+
+### Tests
 
 `go build ./...` and `go test ./...` both work on a bare checkout. Tests that
 need Chrome, Docker or Pandoc skip themselves with a message naming what is

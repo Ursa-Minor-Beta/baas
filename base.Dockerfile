@@ -14,6 +14,18 @@
 ARG SELENIUM_BASE_IMAGE="selenium/standalone-chromium:143.0"
 ARG AIPANDOC_COMMIT="3ac23e0829d7426a4026216dff2f78721095e04c"
 
+# Document tooling is off by default because it dominates the build: compiling
+# the Pandoc fork takes tens of minutes, and LibreOffice pulls ~118 MB and a
+# JDK behind it. Browser automation does not need any of it.
+#
+# Turn it on for the document endpoints:
+#   docker build -f base.Dockerfile --build-arg DOCUMENT_TOOLS=on -t baas-base:local .
+#
+# With it off, /api/parse, /api/parse-to-markdown-kv, /api/render-markdown and
+# /api/pdf-to-images lose their converters. The service still starts and says
+# so in the log at boot.
+ARG DOCUMENT_TOOLS=off
+
 # Debian bookworm, not the bullseye-based default tag: bullseye-security has
 # passed EOL and now serves an expired Release file, which makes apt-get update
 # exit non-zero and fails the build.
@@ -22,7 +34,7 @@ ARG AIPANDOC_COMMIT="3ac23e0829d7426a4026216dff2f78721095e04c"
 # aipandoc pins resolver lts-24.9, which wants exactly 9.10.2. The build steps
 # below pass --no-system-ghc --install-ghc so Stack fetches the GHC the
 # resolver asks for instead of failing on the mismatch.
-FROM haskell:9.10.3-bookworm AS pandoc-build-stage
+FROM haskell:9.10.3-bookworm AS pandoc-on
 
 ARG AIPANDOC_COMMIT
 
@@ -44,12 +56,21 @@ RUN curl -fsSL https://codeload.github.com/aantich/aipandoc/zip/${AIPANDOC_COMMI
 
 WORKDIR /projects/aipandoc
 RUN stack --no-system-ghc --install-ghc build && \
-    stack --no-system-ghc --install-ghc install
+    stack --no-system-ghc --install-ghc install && \
+    mkdir -p /pandoc && cp /root/.local/bin/pandoc /pandoc/pandoc
+
+# Counterpart for DOCUMENT_TOOLS=off: contributes an empty directory, so the
+# COPY below is a no-op and BuildKit never runs the Haskell build at all.
+FROM busybox:1.37 AS pandoc-off
+RUN mkdir -p /pandoc
+
+FROM pandoc-${DOCUMENT_TOOLS} AS pandoc
 
 # Runtime stage: base image with all pre-built dependencies
 FROM ${SELENIUM_BASE_IMAGE}
 
 ARG AIPANDOC_COMMIT
+ARG DOCUMENT_TOOLS
 ARG NODE_VERSION=22.23.2
 # Pinned deliberately: `npm@latest` raises its Node floor over time and silently
 # breaks this build when it outruns NODE_VERSION.
@@ -57,7 +78,8 @@ ARG NPM_VERSION=11.19.1
 
 # OCI-compliant image metadata
 LABEL org.opencontainers.image.title="BaaS base" \
-      org.opencontainers.image.description="Base image for BaaS: Chrome, Pandoc, Node.js and document-processing dependencies" \
+      org.opencontainers.image.description="Base image for BaaS: browser, Node.js, and optionally the document-processing toolchain" \
+      baas.document-tools="${DOCUMENT_TOOLS}" \
       org.opencontainers.image.source="https://github.com/Ursa-Minor-Beta/baas" \
       org.opencontainers.image.licenses="Apache-2.0" \
       pandoc.commit="${AIPANDOC_COMMIT}" \
@@ -77,10 +99,17 @@ RUN groupadd -r -g 65532 appgroup && \
     # package ships a prebuilt binary. Keeping them also breaks the build, since
     # this image carries Debian runtime libraries while its apt sources serve
     # Ubuntu, so the matching -dev packages are uninstallable.
+    # wmctrl stays in both variants: it is a few tens of kilobytes and
+    # /api/status uses it to report whether the X server is actually up.
+    if [ "${DOCUMENT_TOOLS}" = "on" ]; then \
+        DOC_APT="libreoffice poppler-utils antiword qpdf mupdf-tools graphicsmagick ghostscript"; \
+    else \
+        DOC_APT=""; \
+    fi && \
     apt-get install -y --no-install-recommends \
-        ca-certificates curl dumb-init jq \
-        libreoffice poppler-utils antiword qpdf mupdf-tools wmctrl graphicsmagick ghostscript \
-        python3 python3-pip xvfb fluxbox && \
+        ca-certificates curl dumb-init jq wmctrl \
+        python3 python3-pip xvfb fluxbox \
+        ${DOC_APT} && \
     apt-get purge -y apt-utils lsb-release software-properties-common && \
     # Install Node.js LTS. Node names the arm64 tarball arm64 and the x86_64
     # one x64, so map from dpkg's architecture rather than hardcoding either.
@@ -97,14 +126,17 @@ RUN groupadd -r -g 65532 appgroup && \
     # Includes security-critical packages: urllib3>=2.6.3 (CVE-2025-66418, CVE-2025-66471, CVE-2026-21441)
     # and pdfminer.six>=20251230 (GHSA-f83h-ghpp-7wcc)
     rm -rf /opt/venv && \
+    if [ "${DOCUMENT_TOOLS}" = "on" ]; then \
+        DOC_PIP="pymupdf openparse openpyxl Pillow python-docx csvkit"; \
+    else \
+        DOC_PIP=""; \
+    fi && \
     /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages \
-        pymupdf openparse openpyxl Pillow python-docx csvkit \
-        'urllib3>=2.6.3' 'pdfminer.six>=20251230' && \
+        ${DOC_PIP} 'urllib3>=2.6.3' 'pdfminer.six>=20251230' && \
     # Also install in selenium venv if it exists
     if [ -f /home/seluser/venv/bin/pip ]; then \
         /home/seluser/venv/bin/pip install --no-cache-dir \
-            pymupdf openparse openpyxl Pillow python-docx csvkit \
-            'urllib3>=2.6.3' 'pdfminer.six>=20251230'; \
+            ${DOC_PIP} 'urllib3>=2.6.3' 'pdfminer.six>=20251230'; \
     fi && \
     # Create complete directory structure
     mkdir -p /app/tmp /app/run /app/scripts /app/profile /app/.cache /app/.local && \
@@ -126,8 +158,8 @@ RUN groupadd -r -g 65532 appgroup && \
            /usr/bin/apt* /usr/bin/dpkg* /root/.bash_history \
            /usr/share/doc/* /usr/share/man/* /usr/share/info/*
 
-# Copy pre-built Pandoc binary
-COPY --from=pandoc-build-stage --chown=appuser:appgroup /root/.local/bin/pandoc /usr/bin/pandoc
+# Pandoc if DOCUMENT_TOOLS=on, an empty directory otherwise.
+COPY --from=pandoc --chown=appuser:appgroup /pandoc/ /usr/bin/
 
 # The browser binary is named chromium on the chromium images and
 # google-chrome on the chrome ones. Resolve it once here and expose it under a

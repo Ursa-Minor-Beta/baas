@@ -40,7 +40,7 @@ services:
       context: ./
       dockerfile: Dockerfile
       args:
-        BASE_IMAGE: baas-base:local
+        BASE_IMAGE: ${BASE_IMAGE:-baas-base:local}
     depends_on:
       mongodb:
         condition: service_healthy
