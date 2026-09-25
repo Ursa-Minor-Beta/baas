@@ -32,7 +32,7 @@ import (
 func (s *Server) parseToMarkdownKvEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
 
-	if result, ok := service.WithReadBody(ctx, s, c, "Parse to Markdown", func(cfg *dto.ReadabilityConfig) (*dto.ParseToMarkdownResult, error) {
+	if result, ok := withReadBody(ctx, s, c, "Parse to Markdown", func(cfg *dto.ReadabilityConfig) (*dto.ParseToMarkdownResult, error) {
 		cfg.MaxAttempts = lo.If(cfg.MaxAttempts != nil, cfg.MaxAttempts).Else(lo.ToPtr(1))
 		cfg.Timeout = lo.If(cfg.Timeout == "", DefaultTimeout).Else(cfg.Timeout)
 		configHash := cfg.Hash()

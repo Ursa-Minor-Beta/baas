@@ -43,6 +43,8 @@ type BaasStatus struct {
 	Status         string `json:"status"`
 	BrowserStatus  string `json:"browserStatus"`
 	AIPandocCommit string `json:"aipandocCommit,omitempty"`
+	// DocumentTools is "available" or "unavailable"; see REQUIRE_DOCUMENT_TOOLS.
+	DocumentTools string `json:"documentTools"`
 }
 
 // @Schemes
@@ -163,6 +165,7 @@ func (s *Server) statusEndpoint(c service.HttpAdapter) error {
 			Status:         "running",
 			BrowserStatus:  browserStatus,
 			AIPandocCommit: s.aiPandocCommit,
+			DocumentTools:  s.documentTools,
 		},
 		Meta: meta,
 	})
@@ -237,7 +240,7 @@ func (s *Server) asyncMessageEndpoint(c service.HttpAdapter) error {
 // @Router /api/async/stop [post]
 func (s *Server) asyncStopEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
-	if result, ok := service.WithReadBody(ctx, s, c, "process baas async request", func(cfg *dto.ControlConfig) (*dto.BrowserMessageOut, error) {
+	if result, ok := withReadBody(ctx, s, c, "process baas async request", func(cfg *dto.ControlConfig) (*dto.BrowserMessageOut, error) {
 		ctx = s.Logger().WithValue(ctx, "sessionID", cfg.SessionID)
 		if cfg.SessionID == "" {
 			return nil, errors.Errorf("session id must be provided")
@@ -262,7 +265,7 @@ func (s *Server) asyncStopEndpoint(c service.HttpAdapter) error {
 // @Router /api/async/start [post]
 func (s *Server) asyncStartEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
-	if result, ok := service.WithReadBody(ctx, s, c, "process baas async request", func(cfg *dto.Config) (*dto.Result, error) {
+	if result, ok := withReadBody(ctx, s, c, "process baas async request", func(cfg *dto.Config) (*dto.Result, error) {
 		cfg = s.withConfigDefaults(ctx, cfg)
 		sessionID := lo.If(cfg.SessionID != nil, lo.FromPtr(cfg.SessionID)).Else(s.GetMeta(ctx).RequestUID)
 		ctx = s.Logger().WithValue(ctx, "sessionID", sessionID)
@@ -370,7 +373,7 @@ func (s *Server) asyncStartEndpoint(c service.HttpAdapter) error {
 // @Router /api/process [post]
 func (s *Server) processEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
-	if result, ok := service.WithReadBody(ctx, s, c, "process URL", func(cfg *dto.Config) (*dto.Result, error) {
+	if result, ok := withReadBody(ctx, s, c, "process URL", func(cfg *dto.Config) (*dto.Result, error) {
 		if err := validateProcessConfig(cfg); err != nil {
 			return nil, err
 		}

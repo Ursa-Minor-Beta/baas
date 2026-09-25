@@ -1,6 +1,7 @@
 # Local stack: MongoDB plus BaaS.
 #
-# Build the base image once before the first run:
+# Build the base image once before the first run (add
+# --build-arg DOCUMENT_TOOLS=on for the document endpoints):
 #   docker build -f base.Dockerfile -t baas-base:local .
 #
 # Then:
@@ -8,6 +9,8 @@
 #   docker compose up --build
 #
 # BaaS listens on http://localhost:8090; VNC into the browser on localhost:5900.
+# MongoDB and VNC have no authentication here, so both are published on
+# loopback only.
 
 services:
   mongodb:
@@ -18,7 +21,7 @@ services:
     # stack. Default is 27018 to stay clear of a stock 27017 on the host, and
     # of other projects that publish one; override with MONGO_PORT.
     ports:
-      - "${MONGO_PORT:-27018}:27017"
+      - "127.0.0.1:${MONGO_PORT:-27018}:27017"
     command: /usr/bin/mongod --replSet baas --bind_ip 0.0.0.0 --port 27017
     healthcheck:
       # MongoDB change streams back the async session message bus, so the node
@@ -40,7 +43,7 @@ services:
       context: ./
       dockerfile: Dockerfile
       args:
-        BASE_IMAGE: baas-base:local
+        BASE_IMAGE: ${BASE_IMAGE:-baas-base:local}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -69,7 +72,7 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "8090:8090"
-      - "5900:5900"
+      - "127.0.0.1:5900:5900"
     healthcheck:
       test: "curl --silent --fail http://localhost:8090/api/status > /dev/null || exit 1"
       timeout: 30s

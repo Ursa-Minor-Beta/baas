@@ -61,6 +61,7 @@ type Server struct {
 	pdfParser            pdf.Parser
 	markdownRenderer     markdown.Renderer
 	pdfToImagesConverter pdf.PdfToImagesConverter
+	documentTools        string
 	htmlTemplater        html.HtmlTemplater
 	storage              storage.Uploader
 	tempFiles            tempfiles.Manager
@@ -146,11 +147,6 @@ func New(ctx context.Context) (*Server, error) {
 		s.Logger().Warnf(ctx, "html templater initialization failed - /api/render-markdown endpoint will not work")
 	}
 
-	s.pdfToImagesConverter, err = s.initPdfToImagesConverter()
-	if err != nil {
-		s.Logger().Warnf(s.Logger().WithValue(context.Background(), "error", err.Error()), "pdf to images converter script not found")
-	}
-
 	s.storage = s.initStorage()
 
 	if source, err := iofs.New(migrations, "embed/migrations"); err != nil {
@@ -197,15 +193,13 @@ func New(ctx context.Context) (*Server, error) {
 		}
 	}
 
-	pandocSvc, err := NewPandoc()
-	if err != nil {
-		// Check X server availability - if unavailable, just warn and continue
-		xServerStatus := s.checkXServerAvailability(context.Background())
-		if xServerStatus != "available" {
-			s.Logger().Warnf(context.Background(), "failed to init pandoc (X server not available): %v", err)
-		} else {
-			return nil, errors.Wrapf(err, "failed to init pandoc")
-		}
+	requireDocTools, _ := strconv.ParseBool(os.Getenv("REQUIRE_DOCUMENT_TOOLS"))
+	if err := s.initDocumentTools(s.Logger(), docToolchain{
+		newPandoc:      NewPandoc,
+		newPdfToImages: func() (pdf.PdfToImagesConverter, error) { return pdf.NewPdfToImagesConverter(s.Logger()) },
+		probeParser:    func() error { return pdf.ProbeParser(ctx, pythonPath(), parsePDFScriptPath()) },
+	}, requireDocTools); err != nil {
+		return nil, err
 	}
 
 	tempFileManager, err := tempfiles.NewMongoManager(s.Logger(), s.database)
@@ -219,8 +213,7 @@ func New(ctx context.Context) (*Server, error) {
 
 	go s.cleanupActiveSessionsLoop()
 
-	s.browser = NewBrowser(srv.Logger(), os.Getenv("BROWSER_EXECUTABLE"), extensions, pandocSvc, s.inMessages, s.outMessages, s.registry)
-	s.pandoc = pandocSvc
+	s.browser = NewBrowser(srv.Logger(), os.Getenv("BROWSER_EXECUTABLE"), extensions, s.pandoc, s.inMessages, s.outMessages, s.registry)
 	s.browser.SetRequestsDebug(s.IsRequestDebugEnabled())
 	if os.Getenv("CHROME_DEBUG") != "" {
 		s.browser.SetChromeDebug(true)
@@ -253,11 +246,6 @@ func (s *Server) initPDFParser() (pdf.Parser, error) {
 		openAIModel = "text-embedding-3-large" // default model
 	}
 
-	pythonPath := os.Getenv("PYTHON_PATH")
-	if pythonPath == "" {
-		pythonPath = "python3" // default python
-	}
-
 	openAIMinTokens, err := strconv.Atoi(os.Getenv("OPENAI_MIN_TOKENS"))
 	if err != nil {
 		openAIMinTokens = 64 // default value
@@ -268,19 +256,14 @@ func (s *Server) initPDFParser() (pdf.Parser, error) {
 		openAIMaxTokens = 1024 // default value
 	}
 
-	parsePDFScriptPath := filepath.Join(os.Getenv("SCRIPTS_DIR"), "mupdf.py")
-	if _, err := os.Stat(parsePDFScriptPath); os.IsNotExist(err) {
-		s.Logger().Warnf(context.Background(), "PDF parsing script not found at %s: %v", parsePDFScriptPath, err)
-	}
-
 	pdfParser := pdf.NewPDFParser(
 		s.Logger(),
-		pythonPath,
+		pythonPath(),
 		openAIAPIKey,
 		openAIModel,
 		openAIMinTokens,
 		openAIMaxTokens,
-		parsePDFScriptPath,
+		parsePDFScriptPath(),
 	)
 	return pdfParser, nil
 }
@@ -308,8 +291,15 @@ func (s *Server) initHtmlTemplater() (html.HtmlTemplater, error) {
 	return html.NewHtmlTemplater(s.Logger(), nodePath), nil
 }
 
-func (s *Server) initPdfToImagesConverter() (pdf.PdfToImagesConverter, error) {
-	return pdf.NewPdfToImagesConverter(s.Logger())
+func pythonPath() string {
+	if p := os.Getenv("PYTHON_PATH"); p != "" {
+		return p
+	}
+	return "python3"
+}
+
+func parsePDFScriptPath() string {
+	return filepath.Join(os.Getenv("SCRIPTS_DIR"), "mupdf.py")
 }
 
 // @title BAAS API

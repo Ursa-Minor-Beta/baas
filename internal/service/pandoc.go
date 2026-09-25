@@ -60,29 +60,28 @@ type pandoc struct {
 }
 
 func NewPandoc() (Pandoc, error) {
-	pandocCmd, err := exec.Lookup("pandoc")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to lookup pandoc executable path")
+	p := &pandoc{log: logger.NewLogger()}
+	var missing []string
+	for _, bin := range []struct {
+		name string
+		path *string
+	}{
+		{"pandoc", &p.pandocExecutablePath},
+		{"antiword", &p.antiwordExecutablePath},
+		{"pdftohtml", &p.pdftohtmlExecutablePath},
+		{"libreoffice", &p.libreofficeExecutablePath},
+	} {
+		found, err := exec.Lookup(bin.name)
+		if err != nil {
+			missing = append(missing, bin.name)
+			continue
+		}
+		*bin.path = found
 	}
-	antiwordExecutablePath, err := exec.Lookup("antiword")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to lookup antiword executable path")
+	if len(missing) > 0 {
+		return nil, errors.Errorf("not found in $PATH: %s", strings.Join(missing, ", "))
 	}
-	pdftohtmlCmd, err := exec.Lookup("pdftohtml")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to lookup pdftohtml executable path")
-	}
-	libreofficeExecutablePath, err := exec.Lookup("libreoffice")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to lookup libreoffice executable path")
-	}
-	return &pandoc{
-		pandocExecutablePath:      pandocCmd,
-		pdftohtmlExecutablePath:   pdftohtmlCmd,
-		antiwordExecutablePath:    antiwordExecutablePath,
-		libreofficeExecutablePath: libreofficeExecutablePath,
-		log:                       logger.NewLogger(),
-	}, nil
+	return p, nil
 }
 
 func (p *pandoc) PdfToHtml(ctx context.Context, pdfBytes []byte) (string, error) {
@@ -158,7 +157,13 @@ func (p *pandoc) DocToPdf(ctx context.Context, docBytes []byte, docFmt string) (
 	return resBytes, nil
 }
 
-func (p *pandoc) HtmlToPdf(ctx context.Context, htmlBytes []byte, template *dto.HtmlTemplate) (out []byte, err error) {
+func (p *pandoc) HtmlToPdf(ctx context.Context, htmlBytes []byte, template *dto.HtmlTemplate) ([]byte, error) {
+	return htmlToPdf(ctx, htmlBytes, template)
+}
+
+// htmlToPdf prints through headless Chrome and needs nothing from the
+// document toolchain, so unavailablePandoc serves it too.
+func htmlToPdf(ctx context.Context, htmlBytes []byte, template *dto.HtmlTemplate) (out []byte, err error) {
 	allocOpts := append(
 		chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", true),
