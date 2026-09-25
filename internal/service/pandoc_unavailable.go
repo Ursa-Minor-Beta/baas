@@ -3,15 +3,15 @@ package service
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
+	"github.com/Ursa-Minor-Beta/baas/internal/doctools"
 	"github.com/Ursa-Minor-Beta/baas/pkg/dto"
 )
 
 // unavailablePandoc stands in when the document toolchain is absent, which is
 // the case for a base image built with the default DOCUMENT_TOOLS=off. Every
-// call fails with an explanation instead of the service refusing to boot or
-// the document endpoints dereferencing a nil converter.
+// conversion fails with an explanation instead of the service refusing to boot
+// or dereferencing a nil converter. HtmlToPdf is the exception: it only needs
+// Chrome, so it keeps working.
 type unavailablePandoc struct {
 	reason error
 }
@@ -20,10 +20,10 @@ func newUnavailablePandoc(reason error) Pandoc {
 	return &unavailablePandoc{reason: reason}
 }
 
+var _ Pandoc = (*unavailablePandoc)(nil)
+
 func (p *unavailablePandoc) err() error {
-	return errors.Wrap(p.reason,
-		"document conversion is unavailable: this image was built without the document toolchain, "+
-			"rebuild the base image with --build-arg DOCUMENT_TOOLS=on")
+	return doctools.Unavailable(p.reason)
 }
 
 func (p *unavailablePandoc) PdfToHtml(ctx context.Context, pdfBytes []byte) (string, error) {
@@ -42,8 +42,8 @@ func (p *unavailablePandoc) DocToPdf(ctx context.Context, docBytes []byte, docFm
 	return nil, p.err()
 }
 
-func (p *unavailablePandoc) HtmlToPdf(ctx context.Context, htmlBytes []byte, template *dto.HtmlTemplate) (out []byte, err error) {
-	return nil, p.err()
+func (p *unavailablePandoc) HtmlToPdf(ctx context.Context, htmlBytes []byte, template *dto.HtmlTemplate) ([]byte, error) {
+	return htmlToPdf(ctx, htmlBytes, template)
 }
 
 func (p *unavailablePandoc) HtmlToDocx(ctx context.Context, htmlBytes []byte, template *dto.HtmlTemplate) (out []byte, err error) {

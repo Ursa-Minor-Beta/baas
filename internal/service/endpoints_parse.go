@@ -30,7 +30,7 @@ import (
 func (s *Server) parseDocumentEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
 
-	if result, ok := service.WithReadBody(ctx, s, c, "PDF parse", func(cfg *dto.ReadabilityConfig) (*dto.ParseDocResult, error) {
+	if result, ok := withReadBody(ctx, s, c, "PDF parse", func(cfg *dto.ReadabilityConfig) (*dto.ParseDocResult, error) {
 		cfg.MaxAttempts = lo.If(cfg.MaxAttempts != nil, cfg.MaxAttempts).Else(lo.ToPtr(1))
 		cfg.Timeout = lo.If(cfg.Timeout == "", DefaultTimeout).Else(cfg.Timeout)
 		configHash := cfg.Hash()
@@ -94,7 +94,7 @@ func (s *Server) parseDocumentEndpoint(c service.HttpAdapter) error {
 func (s *Server) pdfToImagesEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
 
-	if result, ok := service.WithReadBody(ctx, s, c, "PDF to images", func(cfg *dto.PdfToImagesConfig) (*dto.PdfToImagesResult, error) {
+	if result, ok := withReadBody(ctx, s, c, "PDF to images", func(cfg *dto.PdfToImagesConfig) (*dto.PdfToImagesResult, error) {
 		return s.doPdfToImages(ctx, cfg)
 	}); ok && result != nil {
 		c.JSON(http.StatusOK, result)

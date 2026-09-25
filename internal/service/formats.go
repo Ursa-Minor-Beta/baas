@@ -21,6 +21,7 @@ import (
 
 	"github.com/simple-container-com/go-aws-lambda-sdk/pkg/logger"
 
+	"github.com/Ursa-Minor-Beta/baas/internal/doctools"
 	"github.com/Ursa-Minor-Beta/baas/pkg/dto"
 )
 
@@ -463,7 +464,12 @@ func (s *Server) parsePdf(ctx context.Context, cfg *dto.ReadabilityConfig, resp 
 
 	plainText, err := s.pandoc.PdfToHtml(ctx, data)
 	if err != nil {
-		s.Logger().Errorf(ctx, "failed to convert PDF to text with pdftotext, falling back to embedded pdf reader")
+		if errors.Is(err, doctools.ErrUnavailable) {
+			s.Logger().Infof(ctx, "pdftohtml not installed, reading PDF with the embedded reader")
+		} else {
+			s.Logger().Errorf(s.Logger().WithValue(ctx, "error", err.Error()),
+				"failed to convert PDF to html with pdftohtml, falling back to embedded pdf reader")
+		}
 		pdfReader, err := pdf.NewReader(bytes.NewReader(data), int64(len(data)))
 		if err != nil {
 			return nil, err

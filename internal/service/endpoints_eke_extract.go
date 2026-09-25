@@ -92,13 +92,17 @@ func (s *Server) eKeExtractEndpoint(c service.HttpAdapter) error {
 	result, err := s.doRunEkeExtract(ctx, fileBytes, mimeType, returnPandocPtr)
 	if err != nil {
 		s.Logger().Errorf(ctx, "eke-extract failed: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{
+		c.JSON(errorStatus(err), map[string]string{
 			"error": err.Error(),
 		})
 		return nil
 	}
 
+	// GetMeta starts a fresh ResultMeta; keep the error a partial result
+	// carries, such as a failed returnPandoc conversion.
+	resultErr := result.Meta.Error
 	result.Meta = s.GetMeta(ctx)
+	result.Meta.Error = resultErr
 	c.JSON(http.StatusOK, result)
 	return nil
 }

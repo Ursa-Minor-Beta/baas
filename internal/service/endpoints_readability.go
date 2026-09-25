@@ -27,7 +27,7 @@ import (
 func (s *Server) readabilityEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
 
-	if result, ok := service.WithReadBody(ctx, s, c, "readability process", func(cfg *dto.ReadabilityConfig) (*dto.ReadabilityResult, error) {
+	if result, ok := withReadBody(ctx, s, c, "readability process", func(cfg *dto.ReadabilityConfig) (*dto.ReadabilityResult, error) {
 		cfg.MaxAttempts = lo.If(cfg.MaxAttempts != nil, cfg.MaxAttempts).Else(lo.ToPtr(DefaultAttemptsCount))
 		cfg.Timeout = lo.If(cfg.Timeout == "", DefaultTimeout).Else(cfg.Timeout)
 		configHash := cfg.Hash()

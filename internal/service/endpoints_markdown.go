@@ -26,7 +26,7 @@ import (
 func (s *Server) renderMarkdownEndpoint(c service.HttpAdapter) error {
 	ctx := c.Context()
 
-	if result, ok := service.WithReadBody(ctx, s, c, "Markdown render", func(cfg *dto.RenderMarkdownConfig) (*dto.RenderMarkdownResult, error) {
+	if result, ok := withReadBody(ctx, s, c, "Markdown render", func(cfg *dto.RenderMarkdownConfig) (*dto.RenderMarkdownResult, error) {
 		return s.doRenderMarkdown(ctx, cfg)
 	}); ok && result != nil {
 		c.JSON(http.StatusOK, result)
@@ -76,9 +76,6 @@ func (s *Server) doRenderMarkdown(ctx context.Context, cfg *dto.RenderMarkdownCo
 		}
 		return &dto.RenderMarkdownResult{OutputUrl: pdfUploadResult.Link}, nil
 	case "docx":
-		if s.pandoc == nil {
-			return nil, errors.New("pandoc is not initialized - DOCX conversion is not available")
-		}
 		docxContent, err := s.pandoc.HtmlToDocx(ctx, []byte(html), cfg.Template)
 		if err != nil {
 			return nil, err
@@ -118,7 +115,7 @@ func (s *Server) doRenderMarkdown(ctx context.Context, cfg *dto.RenderMarkdownCo
 func (s *Server) extractMarkdown(c service.HttpAdapter) error {
 	ctx := c.Context()
 
-	if result, ok := service.WithReadBody(ctx, s, c, "PDF parse", func(cfg *dto.ReadabilityConfig) (*dto.ExtractMarkdownResult, error) {
+	if result, ok := withReadBody(ctx, s, c, "PDF parse", func(cfg *dto.ReadabilityConfig) (*dto.ExtractMarkdownResult, error) {
 		cfg.MaxAttempts = lo.If(cfg.MaxAttempts != nil, cfg.MaxAttempts).Else(lo.ToPtr(1))
 		cfg.Timeout = lo.If(cfg.Timeout == "", DefaultTimeout).Else(cfg.Timeout)
 		configHash := cfg.Hash()

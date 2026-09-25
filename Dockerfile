@@ -1,8 +1,8 @@
 # Runtime image for BaaS.
 #
 # It builds on top of the base image produced by base.Dockerfile, which carries
-# Chrome, Pandoc, Node.js and the document-processing tooling. Build the base
-# first, then this file:
+# the browser, Node.js and, with --build-arg DOCUMENT_TOOLS=on, the document
+# toolchain. Build the base first, then this file:
 #
 #   docker build -f base.Dockerfile -t baas-base:local .
 #   docker build -t baas:local .

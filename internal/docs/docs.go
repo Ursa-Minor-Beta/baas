@@ -1462,6 +1462,10 @@ const docTemplate = `{
                 "browserStatus": {
                     "type": "string"
                 },
+                "documentTools": {
+                    "description": "DocumentTools is \"available\" or \"unavailable\"; see REQUIRE_DOCUMENT_TOOLS.",
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 }

@@ -2,8 +2,9 @@
 #
 #   docker build -f base.Dockerfile -t baas-base:local .
 #
-# Stage 1 compiles the aipandoc fork of Pandoc; stage 2 assembles the runtime
-# on top of a Selenium browser image.
+# The pandoc-on stage compiles the aipandoc fork of Pandoc, and runs only with
+# DOCUMENT_TOOLS=on (see below); the last stage assembles the runtime on top of
+# a Selenium browser image.
 #
 # The default base is `standalone-chromium`, which publishes both linux/amd64
 # and linux/arm64, so this builds on Apple Silicon as well as on x86. Selenium's
@@ -21,9 +22,14 @@ ARG AIPANDOC_COMMIT="3ac23e0829d7426a4026216dff2f78721095e04c"
 # Turn it on for the document endpoints:
 #   docker build -f base.Dockerfile --build-arg DOCUMENT_TOOLS=on -t baas-base:local .
 #
-# With it off, /api/parse, /api/parse-to-markdown-kv, /api/render-markdown and
-# /api/pdf-to-images lose their converters. The service still starts and says
-# so in the log at boot.
+# Accepts exactly "on" or "off" and needs BuildKit, the default builder since
+# Docker 23: the legacy builder runs every stage, so it would compile Pandoc
+# either way.
+#
+# With it off the service still starts, lists what is disabled in its boot log
+# and reports documentTools: unavailable on /api/status. The document
+# endpoints answer 501 naming this argument; see "Document endpoints" in the
+# README for the full list of what is affected.
 ARG DOCUMENT_TOOLS=off
 
 # Debian bookworm, not the bullseye-based default tag: bullseye-security has
@@ -61,8 +67,8 @@ RUN stack --no-system-ghc --install-ghc build && \
 
 # Counterpart for DOCUMENT_TOOLS=off: contributes an empty directory, so the
 # COPY below is a no-op and BuildKit never runs the Haskell build at all.
-FROM busybox:1.37 AS pandoc-off
-RUN mkdir -p /pandoc
+FROM scratch AS pandoc-off
+WORKDIR /pandoc
 
 FROM pandoc-${DOCUMENT_TOOLS} AS pandoc
 
@@ -101,10 +107,12 @@ RUN groupadd -r -g 65532 appgroup && \
     # Ubuntu, so the matching -dev packages are uninstallable.
     # wmctrl stays in both variants: it is a few tens of kilobytes and
     # /api/status uses it to report whether the X server is actually up.
+    # pdfminer.six is only there as openparse's dependency, pinned for
+    # GHSA-f83h-ghpp-7wcc, so it goes with the rest of the document tooling.
+    DOC_APT="" && DOC_PIP="" && \
     if [ "${DOCUMENT_TOOLS}" = "on" ]; then \
         DOC_APT="libreoffice poppler-utils antiword qpdf mupdf-tools graphicsmagick ghostscript"; \
-    else \
-        DOC_APT=""; \
+        DOC_PIP="pymupdf openparse openpyxl Pillow python-docx csvkit pdfminer.six>=20251230"; \
     fi && \
     apt-get install -y --no-install-recommends \
         ca-certificates curl dumb-init jq wmctrl \
@@ -122,21 +130,16 @@ RUN groupadd -r -g 65532 appgroup && \
     tar -xzf node.tar.gz -C /usr/local --strip-components=1 && \
     rm node.tar.gz && \
     npm install -g "npm@${NPM_VERSION}" && \
-    # Install Python packages (use system pip to install globally for all Python versions)
-    # Includes security-critical packages: urllib3>=2.6.3 (CVE-2025-66418, CVE-2025-66471, CVE-2026-21441)
-    # and pdfminer.six>=20251230 (GHSA-f83h-ghpp-7wcc)
+    # Install Python packages (use system pip to install globally for all Python versions).
+    # urllib3>=2.6.3 (CVE-2025-66418, CVE-2025-66471, CVE-2026-21441) applies to
+    # both variants: the Selenium image already ships 2.6.2 in both interpreters.
     rm -rf /opt/venv && \
-    if [ "${DOCUMENT_TOOLS}" = "on" ]; then \
-        DOC_PIP="pymupdf openparse openpyxl Pillow python-docx csvkit"; \
-    else \
-        DOC_PIP=""; \
-    fi && \
     /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages \
-        ${DOC_PIP} 'urllib3>=2.6.3' 'pdfminer.six>=20251230' && \
+        ${DOC_PIP} 'urllib3>=2.6.3' && \
     # Also install in selenium venv if it exists
     if [ -f /home/seluser/venv/bin/pip ]; then \
         /home/seluser/venv/bin/pip install --no-cache-dir \
-            ${DOC_PIP} 'urllib3>=2.6.3' 'pdfminer.six>=20251230'; \
+            ${DOC_PIP} 'urllib3>=2.6.3'; \
     fi && \
     # Create complete directory structure
     mkdir -p /app/tmp /app/run /app/scripts /app/profile /app/.cache /app/.local && \
@@ -158,8 +161,9 @@ RUN groupadd -r -g 65532 appgroup && \
            /usr/bin/apt* /usr/bin/dpkg* /root/.bash_history \
            /usr/share/doc/* /usr/share/man/* /usr/share/info/*
 
-# Pandoc if DOCUMENT_TOOLS=on, an empty directory otherwise.
-COPY --from=pandoc --chown=appuser:appgroup /pandoc/ /usr/bin/
+# Pandoc if DOCUMENT_TOOLS=on, an empty directory otherwise. Owned by root so
+# the service user cannot replace a binary it executes.
+COPY --from=pandoc --chown=root:root --chmod=0755 /pandoc/ /usr/bin/
 
 # The browser binary is named chromium on the chromium images and
 # google-chrome on the chrome ones. Resolve it once here and expose it under a
