@@ -50,6 +50,7 @@ type Result struct {
 
 type BrowserOpts struct {
 	ReturnScreenshot        *bool             `json:"returnScreenshot" default:"false"`                        // whether to return screenshot after execution
+	ReturnLog               *bool             `json:"returnLog" default:"true"`                                // whether to return execution log in response (default: true)
 	UserAgent               string            `json:"userAgent" default:""`                                    // use user-agent (default: undefined)
 	UseProxy                *string           `json:"useProxy" default:""`                                     // use specific proxy server (default: undefined)
 	Cookies                 []BrowserCookie   `json:"cookies"`                                                 // cookies to set before executing actions

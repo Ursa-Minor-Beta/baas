@@ -385,11 +385,14 @@ func (b *browser) toCurrentResponseOut(msg dto.BrowserMessageIn, programCtx *bro
 		RequestID:          msg.RequestID,
 		Timestamp:          time.Now().Format(time.DateTime),
 		Screenshots:        programCtx.screenshots,
-		Log:                lo.FromPtr(programCtx.log),
 		DownloadedFile:     lo.FromPtr(programCtx.downloadFileInfo).content,
 		DownloadedFileName: lo.FromPtr(programCtx.downloadFileInfo).downloadedName,
 		OutHTML:            lo.FromPtr(programCtx.outHtml),
 		ReadabilityArticle: programCtx.readabilityArticle,
+	}
+	// Include log only if returnLog is not explicitly set to false
+	if lo.FromPtrOr(programCtx.bOpts.ReturnLog, true) {
+		res.Log = lo.FromPtr(programCtx.log)
 	}
 	if programCtx.outError != nil {
 		res.Error = programCtx.outError.Error()
@@ -744,11 +747,14 @@ func (b *browser) doRun(ctx context.Context, bOpts dto.BrowserOpts, setupRunActi
 		Cookies:            cookies,
 		URL:                url,
 		Screenshot:         finalScreenshot,
-		Log:                lo.FromPtr(programCtx.log),
 		Screenshots:        programCtx.screenshots,
 		GenerationInfo:     programCtx.generationInfo,
 		Value:              programCtx.outValue,
 		ReadabilityArticle: programCtx.readabilityArticle,
+	}
+	// Include log only if returnLog is not explicitly set to false
+	if lo.FromPtrOr(bOpts.ReturnLog, true) {
+		response.Log = lo.FromPtr(programCtx.log)
 	}
 	if runErr != nil && err == nil {
 		response.Error = lo.ToPtr(runErr.Error())
