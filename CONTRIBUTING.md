@@ -16,7 +16,6 @@ Thanks for your interest in contributing! BaaS (Browser as a Service) drives a r
 - [agent-factory-ui](https://github.com/Ursa-Minor-Beta/agent-factory-ui): the web UI client. UI issues and PRs belong there.
 - [agent-factory-docker-api-ui](https://github.com/Ursa-Minor-Beta/agent-factory-docker-api-ui): one-shot Docker deployment of API + UI.
 
-
 ## Reporting bugs
 
 Search existing issues first to avoid duplicates. A good bug report includes:
