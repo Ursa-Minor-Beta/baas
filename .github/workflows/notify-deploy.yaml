@@ -1,0 +1,26 @@
+name: Notify deploy
+
+# After every push to main, ask the private deploy repo to roll this commit
+# out to the test environment agent-factory uses. Nothing is built or deployed
+# here; the deploy repo checks this commit out and does that itself.
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  dispatch:
+    # Forks have no token and no deploy to notify.
+    if: github.repository == 'Ursa-Minor-Beta/baas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: repository_dispatch to Ursa-Minor-Beta/baas-deploy
+        env:
+          GH_TOKEN: ${{ secrets.BAAS_DEPLOY_DISPATCH_TOKEN }}
+          SHA: ${{ github.sha }}
+        run: |
+          jq -n --arg sha "$SHA" '{event_type: "baas-main-updated", client_payload: {sha: $sha}}' |
+            gh api repos/Ursa-Minor-Beta/baas-deploy/dispatches --input -
+          echo "dispatched $SHA"
